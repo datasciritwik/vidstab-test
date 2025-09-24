@@ -1,27 +1,23 @@
-import streamlit as st
+import av
 import cv2
+import numpy as np
+import streamlit as st
 from vidstab import VidStab
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
-st.title("Live Video Stabilization (Webcam)")
+st.title("Real-Time Video Stabilization with VidStab")
 
-# Create VidStab object
+# Initialize stabilizer once
 stabilizer = VidStab()
 
-# Streamlit camera input (captures snapshots, not continuous stream)
-frame_window = st.image([])
+class VideoTransformer(VideoTransformerBase):
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+        
+        stabilized_frame = stabilizer.stabilize_frame(input_frame=img, smoothing_window=30)
+        if stabilized_frame is None:
+            stabilized_frame = img  # fallback for first few frames
+        
+        return stabilized_frame
 
-camera = st.camera_input("Start camera")
-
-if camera:
-    # Convert snapshot into cv2 image
-    file_bytes = np.asarray(bytearray(camera.read()), dtype=np.uint8)
-    frame = cv2.imdecode(file_bytes, 1)
-
-    # Stabilize the frame
-    stabilized_frame = stabilizer.stabilize_frame(input_frame=frame, smoothing_window=30)
-
-    if stabilized_frame is None:
-        stabilized_frame = frame  # fallback
-
-    # Show stabilized frame
-    frame_window.image(cv2.cvtColor(stabilized_frame, cv2.COLOR_BGR2RGB))
+webrtc_streamer(key="stabilization", video_transformer_factory=VideoTransformer)
