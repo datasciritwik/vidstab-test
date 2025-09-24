@@ -1,0 +1,5 @@
+streamlit
+vidstab
+opencv-python
+numpy
+moviepy
